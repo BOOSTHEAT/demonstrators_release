@@ -1,0 +1,48 @@
+parameters:
+  - name: applicationId
+    type: string
+  - name: applicationName
+    type: string
+  - name: applicationMain
+    type: string
+  - name: applicationFeed
+    type: string
+
+jobs:
+  - job: BuildGui_linux_x64
+    pool:
+      vmImage: 'ubuntu-latest'
+    
+    steps:
+
+      - template: ../dotnet-setup-template.yml
+
+      - download: LINKER
+        artifact: device_linker
+        displayName: Download Linker
+
+      - bash: |
+          linker="${PIPELINE_WORKSPACE}/LINKER/device_linker/ImpliciX.Linker/src/ImpliciX.Linker"
+          chmod +x $linker
+          echo "##vso[task.setvariable variable=LINKER_PATH]$linker"
+          echo "##vso[task.setvariable variable=LINKER_RUN]${BUILD_SOURCESDIRECTORY}/Shared/scripts/link.sh"
+          echo "##vso[task.setvariable variable=APPLICATION_NAME]${{ parameters.applicationName }}.${{ parameters.applicationId }}"
+          echo "##vso[task.setvariable variable=APPLICATION_MAIN]${{ parameters.applicationMain }}"
+          echo "##vso[task.setvariable variable=APPLICATION_FEED]${{ parameters.applicationFeed }}"
+        displayName: Define app variables
+
+      - bash: |
+          $LINKER_RUN gengui
+        displayName: Generates GUI project from feeds
+
+      - bash: |
+          $LINKER_RUN compilegui linux-x64 implicix-qt5
+        displayName: Build GUI
+
+      - publish: '$(Build.ArtifactStagingDirectory)/gui_output'
+        artifact: GUI_linux_x64
+        displayName: Publish GUI artifact
+
+      - publish: '$(Build.ArtifactStagingDirectory)/gui_src' 
+        artifact: GUI_linux_x64_SRC
+        displayName: Publish GUI SRC

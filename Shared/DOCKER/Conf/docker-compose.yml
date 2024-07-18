@@ -1,0 +1,99 @@
+version: '3.8'
+services:
+
+
+  implicix_influx:
+    image: influxdb:1.8.1-alpine
+    container_name: implicix_influx
+    environment:
+      - INFLUXDB_DB=boiler
+    volumes:
+      - 'influx_storage:/var/lib/influxdb'
+      - ./influxdb.conf:/etc/influxdb/influxdb.conf
+    networks:
+      influx-network:
+        ipv4_address: 172.16.238.10
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8086/health" ]
+      interval: 2m00s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  implicix_redis:
+    image: redis/redis-stack:latest
+    container_name: implicix_redis
+    volumes:
+      - 'redis_storage:/data'
+      - ./redis.conf:/redis-stack.conf
+    networks:
+      - influx-network
+
+  implicix_grafana:
+    image: grafana/grafana-oss:latest
+    container_name: implicix_grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - implicix_influx
+    environment:
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_INSTALL_PLUGINS=grafana-clock-panel, grafana-influxdb-flux-datasource, simpod-json-datasource
+    volumes:
+      - 'grafana_storage:/var/lib/grafana'
+      - ./grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasource.yml
+      - ./grafana-dashboard-config.yml:/etc/grafana/provisioning/dashboards/dashboard.yml
+      - ./dashboards/:/var/lib/grafana/dashboards/
+    networks:
+      - influx-network
+
+  implicix_backend:
+    image: mcr.microsoft.com/dotnet/runtime:7.0-jammy
+    container_name: implicix_backend
+    ports:
+      - "9999:9999"
+    working_dir: /app
+    depends_on:
+      - implicix_influx
+      - implicix_redis
+    command:
+      - /app/BOOSTHEAT.Boiler.App
+    volumes:
+      - ./manifest.json:/tmp/slot/manifest.json
+      - ./back:/app
+      - 'backend_storage:/implicix_local_storage'
+    networks:
+      - influx-network
+    environment:
+      - IMPLICIX_LOCAL_STORAGE=/implicix_local_storage
+      - IMPLICIX_ENVIRONMENT=dev_Docker
+
+  implicix_gui:
+    image: implicixpublic.azurecr.io/implicix-qt5:latest
+    container_name: implicix_gui
+    entrypoint: /app/gui backend=implicix_backend:9999 loglevel=VERBOSE
+    depends_on:
+      - implicix_backend
+    volumes:
+      - ./gui:/app/gui
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ~/.Xauthority:/root/.Xauthority
+    networks:
+      - influx-network
+    environment:
+      - DISPLAY
+      - QT_QUICK_BACKEND=software
+
+volumes:
+  grafana_storage: {}
+  redis_storage: {}
+  influx_storage: {}
+  backend_storage: {}
+
+networks:
+  influx-network:
+    ipam:
+      driver: default
+      config:
+        - subnet: "172.16.238.0/24"

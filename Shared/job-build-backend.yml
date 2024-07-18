@@ -1,0 +1,64 @@
+parameters:
+  - name: jobName
+    type: string
+  - name: applicationId
+    type: string
+  - name: architecture
+    type: string
+  - name: applicationName
+    type: string
+  - name: applicationMain
+    type: string
+  - name: applicationFeed
+    type: string
+  - name: azurePackageFeedName
+    type: string
+
+jobs:
+  - job: BuildBackend_${{ parameters.jobName }}
+    pool:
+      vmImage: 'ubuntu-latest'
+    
+    steps:
+
+      - template: ./dotnet-setup-template.yml
+
+      - download: LINKER
+        artifact: device_linker
+        displayName: Download Linker
+
+      - task: DownloadPackage@1
+        inputs:
+          packageType: nuget
+          feed: ${{ parameters.azurePackageFeedName }}
+          definition: ${{ parameters.applicationName }}.${{ parameters.applicationId }}
+          version: latest
+          extract: false
+          downloadPath: $(Build.ArtifactStagingDirectory)
+        displayName: Download nupkg
+
+      - bash: |
+          set -x
+          mv $(Build.ArtifactStagingDirectory)/*.nupkg $(Build.ArtifactStagingDirectory)/${{ parameters.applicationId }}_${BUILD_BUILDNUMBER}.nupkg
+        displayName: Process nupkg
+
+      - bash: |
+          linker="${PIPELINE_WORKSPACE}/LINKER/device_linker/ImpliciX.Linker/src/ImpliciX.Linker"
+          chmod +x $linker
+          echo "##vso[task.setvariable variable=LINKER_PATH]$linker"
+          echo "##vso[task.setvariable variable=LINKER_RUN]${BUILD_SOURCESDIRECTORY}/Shared/scripts/link.sh"
+          echo "##vso[task.setvariable variable=APPLICATION_NAME]${{ parameters.applicationName }}.${{ parameters.applicationId }}"
+          echo "##vso[task.setvariable variable=APPLICATION_MAIN]${{ parameters.applicationMain }}"
+          echo "##vso[task.setvariable variable=APPLICATION_FEED]${{ parameters.applicationFeed }}"
+        displayName: Define app variables
+
+      - bash: |
+          $LINKER_RUN backend ${{ parameters.architecture }}
+        displayName: Builds app from feeds
+
+      - template: ./language-tag-template.yml
+
+      - publish: '$(Build.ArtifactStagingDirectory)'
+        artifact: App_${{ parameters.jobName }}
+        displayName: Publish App artifact
+        

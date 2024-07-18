@@ -1,0 +1,159 @@
+version: '3.8'
+services:
+
+  implicix_grafana:
+    image: grafana/grafana-oss:latest
+    container_name: implicix_grafana
+    ports:
+      - "5920:3000"
+    depends_on:
+      - implicix_backend
+    environment:
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_INSTALL_PLUGINS=grafana-clock-panel, simpod-json-datasource
+    volumes:
+      - 'grafana_storage:/var/lib/grafana'
+      - ./grafana/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasource.yml
+      - ./grafana/grafana-dashboard-config.yml:/etc/grafana/provisioning/dashboards/dashboard.yml
+      - ./grafana/dashboards/:/var/lib/grafana/dashboards/
+    networks:
+      internal-network:
+        ipv4_address: 172.16.240.2
+
+  implicix_backend:
+    image: mcr.microsoft.com/dotnet/runtime:7.0-jammy
+    container_name: implicix_backend
+    working_dir: /app
+    depends_on:
+      - implicix_backend_sim
+    environment:
+      - IMPLICIX_LOCAL_STORAGE=/implicix_local_storage
+      - IMPLICIX_ENVIRONMENT=demo
+    command:
+      - /app/BOOSTHEAT.Boiler.App
+    volumes:
+      - ./backend:/app
+      - 'backend_storage:/implicix_local_storage'
+    networks:
+      internal-network:
+        ipv4_address: 172.16.240.3
+
+  implicix_gui:
+    image: implicixpublic.azurecr.io/implicix-qt5:latest
+    container_name: implicix_gui
+    entrypoint: /app/gui backend=implicix_backend:9999
+    depends_on:
+      - implicix_backend
+    environment:
+      - DISPLAY=$X11DISPLAY
+      - QT_QUICK_BACKEND=software
+    volumes:
+      - ./gui/ImpliciX.GUI:/app/gui
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ~/.Xauthority:/root/.Xauthority:rw
+    networks:
+      internal-network:
+        ipv4_address: 172.16.240.4
+
+  implicix_backend_monitor:
+    image: implicixpublic.azurecr.io/implicix-dotnet7-runtime:latest
+    container_name: implicix_backend_monitor
+    working_dir: /app
+    depends_on:
+      - implicix_backend
+    environment:
+      - DISPLAY=$X11DISPLAY
+      - IMPLICIX_LOCAL_STORAGE=/implicix_local_storage
+      - LD_DEBUG
+    entrypoint: /app/ImpliciX.Monitor -a /nupkgs/Gimlet.nupkg  -c 172.16.240.3
+    volumes:
+      - ./downloads:/root/downloads
+      - ./monitor:/app
+      - ./nupkgs:/nupkgs
+      - 'backend_storage:/implicix_local_storage'
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ~/.Xauthority:/root/.Xauthority:rw
+    networks:
+      internal-network:
+        ipv4_address: 172.16.240.5
+
+  implicix_backend_sim:
+    image: mcr.microsoft.com/dotnet/runtime:7.0-jammy
+    container_name: implicix_backend_sim
+    working_dir: /app
+    environment:
+      - IMPLICIX_LOCAL_STORAGE=/implicix_local_storage
+      - IMPLICIX_ENVIRONMENT=demo
+    command:
+      - /app/BOOSTHEAT.Boiler.App
+    volumes:
+      - ./backend_sim:/app
+      - 'plcsim_storage:/implicix_local_storage'
+    networks:
+      internal-network:
+        ipv4_address: 172.16.240.6
+
+  implicix_gui_sim:
+    image: implicixpublic.azurecr.io/implicix-qt5:latest
+    container_name: implicix_gui_sim
+    entrypoint: /app/gui backend=implicix_backend_sim:9999
+    depends_on:
+      - implicix_backend_sim
+    environment:
+      - DISPLAY=$X11DISPLAY
+      - QT_QUICK_BACKEND=software
+    volumes:
+      - ./gui_sim/ImpliciX.GUI:/app/gui
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ~/.Xauthority:/root/.Xauthority:rw
+    networks:
+      internal-network:
+        ipv4_address: 172.16.240.7
+
+  implicix_backend_sim_monitor:
+    image: implicixpublic.azurecr.io/implicix-dotnet7-runtime:latest
+    container_name: implicix_backend_sim_monitor
+    working_dir: /app
+    depends_on:
+      - implicix_backend_sim
+    environment:
+      - DISPLAY=$X11DISPLAY
+      - IMPLICIX_LOCAL_STORAGE=/implicix_local_storage
+      - LD_DEBUG
+    entrypoint: /app/ImpliciX.Monitor -a /nupkgs/Gimlet.PlcSim.nupkg  -c 172.16.240.6
+    volumes:
+      - ./monitor:/app
+      - ./nupkgs:/nupkgs
+      - 'plcsim_storage:/implicix_local_storage'
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ~/.Xauthority:/root/.Xauthority:rw
+    networks:
+      internal-network:
+        ipv4_address: 172.16.240.8
+
+  implicix_filebrowser:
+    image: filebrowser/filebrowser
+    container_name: implicix_filebrowser
+    ports:
+      - 5921:80
+    volumes:
+      - 'backend_storage:/data/backend'
+      - 'plcsim_storage:/data/backend_sim'
+      - 'grafana_storage:/data/grafana'
+      - 'filebrowser_data:/data/filebrowser'
+      - ./filebrowser/settings.json:/.filebrowser.json
+    restart: always
+
+volumes:
+  grafana_storage: {}
+  backend_storage: {}
+  plcsim_storage: {}
+  filebrowser_data: {}
+
+networks:
+  internal-network:
+    ipam:
+      driver: default
+      config:
+        - subnet: "172.16.240.0/24"

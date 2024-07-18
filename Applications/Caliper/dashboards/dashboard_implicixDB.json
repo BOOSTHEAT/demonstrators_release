@@ -1,0 +1,364 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {
+        "type": "simpod-json-datasource",
+        "uid": "simpodjson1"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 3,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "simpod-json-datasource",
+            "uid": "simpodjson1"
+          },
+          "editorMode": "code",
+          "payload": "",
+          "refId": "A",
+          "target": "system:metrics:electrical:heat_service_state:_10Minutes:Disabled:duration"
+        },
+        {
+          "datasource": {
+            "type": "simpod-json-datasource",
+            "uid": "simpodjson1"
+          },
+          "editorMode": "code",
+          "hide": false,
+          "payload": "",
+          "refId": "B",
+          "target": "system:metrics:electrical:heat_service_state:_10Minutes:StandBy:duration"
+        },
+        {
+          "datasource": {
+            "type": "simpod-json-datasource",
+            "uid": "simpodjson1"
+          },
+          "editorMode": "code",
+          "hide": false,
+          "payload": "",
+          "refId": "C",
+          "target": "system:metrics:electrical:heat_service_state:_10Minutes:Running:duration"
+        },
+        {
+          "datasource": {
+            "type": "simpod-json-datasource",
+            "uid": "simpodjson1"
+          },
+          "editorMode": "code",
+          "hide": false,
+          "payload": "",
+          "refId": "D",
+          "target": "system:metrics:electrical:heat_service_state:_10Minutes:Other:duration"
+        },
+        {
+          "datasource": {
+            "type": "simpod-json-datasource",
+            "uid": "simpodjson1"
+          },
+          "editorMode": "code",
+          "hide": false,
+          "payload": "",
+          "refId": "E",
+          "target": "system:metrics:electrical:heat_service_state:_10Minutes:Failure:duration"
+        }
+      ],
+      "title": "Pie Chart example",
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "type": "simpod-json-datasource",
+        "uid": "simpodjson1"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "id": 2,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "auto",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "simpod-json-datasource",
+            "uid": "simpodjson1"
+          },
+          "editorMode": "code",
+          "payload": "",
+          "refId": "A",
+          "target": "system:metrics:heat:heating_energy:_1Minutes"
+        },
+        {
+          "datasource": {
+            "type": "simpod-json-datasource",
+            "uid": "simpodjson1"
+          },
+          "editorMode": "code",
+          "hide": false,
+          "payload": "",
+          "refId": "B",
+          "target": "system:metrics:gas:gas_index:_1Minutes"
+        }
+      ],
+      "title": "Bar chart example",
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "simpod-json-datasource",
+        "uid": "simpodjson1"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "id": 1,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "simpod-json-datasource",
+            "uid": "simpodjson1"
+          },
+          "editorMode": "code",
+          "payload": "",
+          "refId": "A",
+          "target": "system:metrics:compressor:compressor_time:_5Seconds"
+        },
+        {
+          "datasource": {
+            "type": "simpod-json-datasource",
+            "uid": "simpodjson1"
+          },
+          "editorMode": "code",
+          "hide": false,
+          "payload": "",
+          "refId": "B",
+          "target": "system:metrics:heat:dhw_energy:_1Minutes"
+        },
+        {
+          "datasource": {
+            "type": "simpod-json-datasource",
+            "uid": "simpodjson1"
+          },
+          "editorMode": "code",
+          "hide": false,
+          "payload": "",
+          "refId": "C",
+          "target": "system:metrics:heat:heating_energy:_1Minutes"
+        }
+      ],
+      "title": "Time series example",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "",
+  "schemaVersion": 38,
+  "tags": [],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-5m",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Dashboard Demo ImplicixDB",
+  "uid": "e8d7635c-ef4e-486c-b1ad-01e04a584077",
+  "version": 1,
+  "weekStart": ""
+}

@@ -1,0 +1,71 @@
+parameters:
+  - name: jobName
+    type: string
+  - name: applicationId
+    type: string
+  - name: additionalParts
+    type: string
+    default: ''
+
+jobs:
+  - job: ImplicixDockerPackage
+    dependsOn:
+      - BuildGui_linux_x64
+      - BuildBackend_${{ parameters.jobName }}
+    pool:
+      vmImage: 'ubuntu-latest'
+    
+    steps:
+
+      - download: current
+        displayName: 'Download App Artifact'
+        artifact: App_${{ parameters.jobName }}
+
+      - download: current
+        displayName: 'Download GUI Artifact'
+        artifact: GUI_linux_x64
+
+      - download: current
+        displayName: 'Download GUI SRC Artifact'
+        artifact: GUI_linux_x64_SRC
+
+      - download: LINKER
+        artifact: device_linker
+
+      - bash: |
+          set -x
+          linker="${PIPELINE_WORKSPACE}/LINKER/device_linker/ImpliciX.Linker/src/ImpliciX.Linker"
+          chmod +x $linker
+          chmod +x ${PIPELINE_WORKSPACE}/GUI_linux_x64/ImpliciX.GUI
+          $linker pack \
+            -n "${{ parameters.applicationId }}" \
+            -v ${BUILD_BUILDNUMBER} \
+            -o ${BUILD_ARTIFACTSTAGINGDIRECTORY}/${{ parameters.applicationId }}_${BUILD_BUILDNUMBER}.zip \
+            -p device:app,${BUILD_BUILDNUMBER},${PIPELINE_WORKSPACE}/App_${{ parameters.jobName }}/app.zip \
+            -p device:gui,${BUILD_BUILDNUMBER},${PIPELINE_WORKSPACE}/GUI_linux_x64/ImpliciX.GUI
+        displayName: Create package
+
+      - bash: |
+          set -x
+          mkdir ${PIPELINE_WORKSPACE}/src
+          mv ${PIPELINE_WORKSPACE}/GUI_linux_x64_SRC ${PIPELINE_WORKSPACE}/src/gui
+          linker="${PIPELINE_WORKSPACE}/LINKER/device_linker/ImpliciX.Linker/src/ImpliciX.Linker"
+          $linker dockerpack \
+            -p ${BUILD_ARTIFACTSTAGINGDIRECTORY}/${{ parameters.applicationId }}_${BUILD_BUILDNUMBER}.zip \
+            -r device:app,implicix_backend,back \
+            -r device:gui,implicix_gui,gui \
+            -f ${PIPELINE_WORKSPACE}/src \
+            -c ${BUILD_SOURCESDIRECTORY}/Shared/DOCKER/Conf/docker-compose.yml \
+            -f ${BUILD_SOURCESDIRECTORY}/Shared/DOCKER/Conf/influxdb.conf \
+            -f ${BUILD_SOURCESDIRECTORY}/Shared/DOCKER/Conf/redis.conf \
+            -f ${BUILD_SOURCESDIRECTORY}/Shared/DOCKER/Conf/grafana-datasources.yml \
+            -f ${BUILD_SOURCESDIRECTORY}/Shared/DOCKER/Conf/grafana-dashboard-config.yml \
+            -f ${BUILD_SOURCESDIRECTORY}/Shared/DOCKER/Conf/.env \
+            -f ${BUILD_SOURCESDIRECTORY}/Applications/${{ parameters.applicationId }}/dashboards \
+            -o ${BUILD_ARTIFACTSTAGINGDIRECTORY}/DockerPackage_${{ parameters.applicationId }}_${BUILD_BUILDNUMBER}.zip
+        displayName: Create docker package
+        
+      - publish: $(Build.ArtifactStagingDirectory)/DockerPackage_${{ parameters.applicationId }}_$(Build.BuildNumber).zip
+        artifact: Docker_Package
+        displayName: Publish package
+

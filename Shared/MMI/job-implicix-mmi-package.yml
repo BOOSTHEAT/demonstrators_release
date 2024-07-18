@@ -1,0 +1,57 @@
+parameters:
+  - name: jobName
+    type: string
+  - name: applicationId
+    type: string
+  - name: additionalParts
+    type: string
+    default: ''
+
+jobs:
+  - job: ImplicixPackage_${{ parameters.jobName }}
+    dependsOn:
+      - BuildGui_linux_arm
+      - BuildBackend_${{ parameters.jobName }}
+    pool:
+      vmImage: 'ubuntu-latest'
+    
+    steps:
+
+      - download: current
+        displayName: 'Download App Artifact'
+        artifact: App_${{ parameters.jobName }}
+
+      - download: current
+        displayName: 'Download GUI Artifact'
+        artifact: GUI_MMI
+
+      - download: current
+        displayName: 'Download GUI SRC Artifact'
+        artifact: GUI_MMI_SRC
+
+      - download: LINKER
+        artifact: device_linker
+
+      - download: BSP
+        artifact: BSP
+        patterns: '**/*.raucb'
+
+      - bash: |
+          set -x
+          linker="${PIPELINE_WORKSPACE}/LINKER/device_linker/ImpliciX.Linker/src/ImpliciX.Linker"
+          chmod +x $linker
+          chmod +x ${PIPELINE_WORKSPACE}/GUI_MMI/ImpliciX.GUI
+          $linker pack \
+            -n "${{ parameters.applicationId }}" \
+            -v ${BUILD_BUILDNUMBER} \
+            -o ${BUILD_ARTIFACTSTAGINGDIRECTORY}/MMIPackage_${{ parameters.applicationId }}_${BUILD_BUILDNUMBER}.zip \
+            -p device:app,${BUILD_BUILDNUMBER},${PIPELINE_WORKSPACE}/App_${{ parameters.jobName }}/app.zip \
+            -p device:gui,${BUILD_BUILDNUMBER},${PIPELINE_WORKSPACE}/GUI_MMI/ImpliciX.GUI \
+            -p device:bsp,${RESOURCES_PIPELINE_BSP_RUNNAME},${PIPELINE_WORKSPACE}/BSP/BSP/update-bundle-colibri-imx7-emmc.raucb ${{ parameters.additionalParts }} \
+            -b ${PIPELINE_WORKSPACE}/GUI_MMI_SRC/:src/gui
+        displayName: Create package
+        
+      - publish: $(Build.ArtifactStagingDirectory)/MMIPackage_${{ parameters.applicationId }}_$(Build.BuildNumber).zip
+        artifact: MMI_Package
+        displayName: Publish package
+

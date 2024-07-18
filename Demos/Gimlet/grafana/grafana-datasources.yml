@@ -1,0 +1,15 @@
+apiVersion: 1
+datasources:
+- name: implicixDB
+  type: simpod-json-datasource
+  url: http://implicix_backend:5283
+  isDefault: true
+  enabled: true
+  access: proxy
+  basic_auth: false
+  editable: true
+  json_data:
+    oauthPassThru: true
+    timeout: 999
+  with_credentials: false
+  uid: simpodjson1

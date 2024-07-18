@@ -1,0 +1,75 @@
+name: $(Year:yyyy).$(Month).$(DayOfMonth).$(Rev:r)
+
+variables:
+  applicationName: Demo
+  applicationId: Caliper
+  applicationFeed: 'https://pkgs.dev.azure.com/boostheat/f02b45bc-a354-4e51-9927-12bddd621cfb/_packaging/Demonstrations/nuget/v3/index.json'
+  azurePackageFeedName: 'ImpliciX Demonstrators/Demonstrations'
+
+trigger:
+  branches:
+    include:
+      - master
+  paths:
+    include:
+      - Applications/*
+      - Shared/*
+
+resources:
+  pipelines:
+    - pipeline: APP
+      source: Caliper\app
+      trigger: true
+    - pipeline: BSP
+      project: ImpliciX
+      source: mmi2-meta-boostheat
+      trigger: true
+    - pipeline: LINKER
+      project: ImpliciX
+      source: linker
+      trigger: none
+
+jobs:
+  - template: ../Shared/job-build-backend.yml
+    parameters:
+      jobName: linux_x64
+      architecture: linux-x64
+      applicationName: $(applicationName)
+      applicationId: $(applicationId)
+      applicationMain: $(applicationId).App.Main
+      applicationFeed: $(applicationFeed)
+      azurePackageFeedName: $(azurePackageFeedName)
+
+  - template: ../Shared/x64/job-build-gui.yml
+    parameters:
+      applicationName: $(applicationName)
+      applicationId: $(applicationId)
+      applicationMain: $(applicationId).App.Main
+      applicationFeed: $(applicationFeed)
+
+  - template: ../Shared/DOCKER/job-implicix-docker-package.yml
+    parameters:
+      jobName: linux_x64
+      applicationId: $(applicationId)
+
+  - template: ../Shared/job-build-backend.yml
+    parameters:
+      jobName: linux_arm
+      architecture: linux-arm
+      applicationName: $(applicationName)
+      applicationId: $(applicationId)
+      applicationMain: $(applicationId).App.Main
+      applicationFeed: $(applicationFeed)
+      azurePackageFeedName: $(azurePackageFeedName)
+
+  - template: ../Shared/MMI/job-build-gui-mmi.yml
+    parameters:
+      applicationName: $(applicationName)
+      applicationId: $(applicationId)
+      applicationMain: $(applicationId).App.Main
+      applicationFeed: $(applicationFeed)
+
+  - template: ../Shared/MMI/job-implicix-mmi-package.yml
+    parameters:
+      jobName: linux_arm
+      applicationId: $(applicationId)

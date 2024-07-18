@@ -1,0 +1,67 @@
+parameters:
+  - name: applicationId
+    type: string
+  - name: applicationName
+    type: string
+  - name: applicationMain
+    type: string
+  - name: applicationFeed
+    type: string
+
+
+jobs:
+  - job: BuildGui_linux_arm
+    pool:
+      vmImage: 'ubuntu-latest'
+    
+    steps:
+    
+      - template: ../dotnet-setup-template.yml
+
+      - download: LINKER
+        artifact: device_linker
+        displayName: Download Linker
+
+      - bash: |
+          set -x
+          linker="${PIPELINE_WORKSPACE}/LINKER/device_linker/ImpliciX.Linker/src/ImpliciX.Linker"
+          chmod +x $linker
+          $linker qml \
+            -s https://pkgs.dev.azure.com/boostheat/_packaging/ImpliciX/nuget/v3/index.json \
+            -s ${{ parameters.applicationFeed }} \
+            -n ${{ parameters.applicationName }}.${{ parameters.applicationId }} \
+            -e ${{ parameters.applicationMain }} \
+            -v ${BUILD_BUILDNUMBER} \
+            -o "${PIPELINE_WORKSPACE}/QML/${BUILD_BUILDNUMBER}"
+        displayName: Generates GUI project from feeds
+
+      - download: BSP
+        artifact: BSP
+        patterns: '**/*.sh'
+
+      - bash: |
+          echo 'y'|sh "${PIPELINE_WORKSPACE}/BSP/BSP/boostheat-fb-glibc-x86_64-Boostheat_generate_sdk-armv7at2hf-neon-colibri-imx7-emmc-toolchain-5.0.0.sh" -d yocto-sdk
+          . yocto-sdk/environment-setup-armv7at2hf-neon-tdx-linux-gnueabi
+          
+          QML_FOLDER="${PIPELINE_WORKSPACE}/QML/${BUILD_BUILDNUMBER}"
+          cd ${QML_FOLDER}
+          GUI_EXE_NAME=$(cat "./main.pro" | grep "TARGET = " | cut -d' ' -f3)
+          rm -rf build_arm
+          mkdir -p build_arm
+          qmake -o build_arm/Makefile
+          make -C build_arm
+          
+          mkdir -p $(Build.ArtifactStagingDirectory)/gui_output
+          cp build_arm/$GUI_EXE_NAME $(Build.ArtifactStagingDirectory)/gui_output
+          cp -r ${QML_FOLDER} $(Build.ArtifactStagingDirectory)/gui_src
+        displayName: Build GUI
+
+      - publish: '$(Build.ArtifactStagingDirectory)/gui_output'
+        artifact: GUI_MMI
+        displayName: Publish GUI artifact
+
+      - publish: '$(Build.ArtifactStagingDirectory)/gui_src'
+        artifact: GUI_MMI_SRC
+        displayName: Publish GUI SRC
+
+

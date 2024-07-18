@@ -1,0 +1,47 @@
+name: $(Year:yyyy).$(Month).$(Rev:r)
+
+trigger:
+  branches:
+    include:
+      - master
+  paths:
+    include:
+      - Demos/Gimlet/*
+
+resources:
+  pipelines:
+    - pipeline: Gimlet
+      source: Gimlet\release
+      trigger: true
+    - pipeline: Gimlet.PlcSim
+      source: Gimlet.PlcSim\release
+      trigger: true
+    - pipeline: Monitor
+      project: ImpliciX
+      source: Monitor
+      trigger: none
+
+jobs:
+  - job: BuildPackage
+    pool:
+      vmImage: 'ubuntu-latest'
+    
+    steps:
+
+      - download: Gimlet
+        displayName: Download Gimlet artifacts
+
+      - download: Gimlet.PlcSim
+        displayName: Download Gimlet.PlcSim artifacts
+
+      - download: Monitor
+        displayName: Download Monitor
+
+      - bash: |
+          ${BUILD_SOURCESDIRECTORY}/Demos/Gimlet/pack.sh
+        displayName: Create demo package
+
+      - publish: '$(Build.ArtifactStagingDirectory)'
+        artifact: DockerPackage
+        displayName: Publish package artifact
+
